@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enzora Maze</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f5f9f8;font-family:'Tajawal',sans-serif;direction:rtl;min-height:100vh;display:flex;justify-content:center;padding:0;}
+#app{width:100%;display:flex;flex-direction:column;align-items:center;}
+
+.header{display:flex;align-items:center;gap:8px;margin-bottom:0.8rem;width:100%;justify-content:space-between;padding:1rem 1rem 0;}
+.brand-row{display:flex;align-items:center;gap:6px;}
+.logo-c{width:42px;height:42px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:white;box-shadow:0 2px 8px rgba(78,89,179,0.15);}
+.logo-c img{width:100%;height:100%;object-fit:cover;}
+.brand{font-size:18px;font-weight:800;color:#1f2848;}
+.brand span{color:#4e59b3;}
+.step-badge{background:#c1cfe8;border:1px solid #9599de;border-radius:99px;padding:4px 12px;font-size:12px;color:#4e59b3;font-weight:600;}
+
+.maze-wrap{background:#c1cfe8;border-radius:12px;border:2px solid #9599de;overflow:hidden;margin-bottom:0.8rem;box-shadow:0 4px 16px rgba(78,89,179,0.12);display:block;}
+canvas#mc{display:block;width:100%;image-rendering:pixelated;}
+
+.q-card{background:white;border:1.5px solid #c1cfe8;border-radius:16px;padding:1rem;width:100%;max-width:600px;margin-bottom:0.8rem;box-shadow:0 2px 10px rgba(78,89,179,0.08);}
+.q-text{font-size:15px;color:#1f2848;font-weight:700;line-height:1.6;margin-bottom:8px;}
+.q-stat{font-size:12px;color:#4e59b3;background:#c1cfe8;border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.6;border-right:3px solid #7d79cf;}
+.opts{display:flex;flex-direction:column;gap:8px;}
+.opt{background:#f5f9f8;border:1.5px solid #c1cfe8;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;color:#1f2848;cursor:pointer;font-family:'Tajawal',sans-serif;text-align:right;direction:rtl;transition:all 0.18s;}
+.opt:hover{background:#c1cfe8;border-color:#7d79cf;}
+.opt.wrong{background:#fef2f2;border-color:#ef4444;color:#dc2626;pointer-events:none;}
+.opt.right{background:#c4ebcd;border-color:#22c55e;color:#166534;pointer-events:none;}
+
+.fb{border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;margin-bottom:0.8rem;width:100%;max-width:600px;}
+.fb.bad{background:#fef2f2;border:1px solid #ef4444;color:#dc2626;}
+.fb.good{background:#c4ebcd;border:1px solid #22c55e;color:#166534;}
+.fb-stat{font-weight:700;margin-top:4px;}
+
+.end-card{background:white;border:1.5px solid #c1cfe8;border-radius:16px;padding:1.2rem 1rem;width:100%;max-width:600px;text-align:center;margin-bottom:0.8rem;box-shadow:0 2px 10px rgba(78,89,179,0.08);}
+.end-card h3{font-size:17px;font-weight:700;margin-bottom:6px;color:#1f2848;}
+.end-card p{font-size:13px;color:#757a8c;line-height:1.7;}
+.pill{display:inline-block;background:linear-gradient(135deg,#7d79cf,#83b6ea);color:white;padding:4px 16px;border-radius:99px;font-size:12px;font-weight:700;margin:8px 0;}
+
+.btn{background:linear-gradient(135deg,#7d79cf,#83b6ea);color:white;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Tajawal',sans-serif;width:100%;max-width:600px;margin-top:4px;transition:opacity 0.2s;box-shadow:0 4px 12px rgba(125,121,207,0.35);}
+.btn:hover{opacity:0.9;}
+.btn-sec{background:transparent;color:#4e59b3;border:1.5px solid #9599de;border-radius:12px;padding:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Tajawal',sans-serif;width:100%;max-width:600px;margin-top:6px;}
+.btn-sec:hover{background:#c1cfe8;}
+
+.hidden{display:none!important;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="brand-row">
+      <div class="logo-c"><img src="Screenshot 2026-05-18 205727.png" alt="Enzora"></div>
+      <div class="brand">Enzora <span>Maze</span></div>
+    </div>
+    <div class="step-badge" id="step-badge">البداية</div>
+  </div>
+
+  <div class="maze-wrap"><canvas id="mc"></canvas></div>
+
+  <div id="q-card" class="q-card hidden">
+    <div class="q-text" id="q-text"></div>
+    <div class="q-stat" id="q-stat"></div>
+    <div class="opts" id="opts"></div>
+  </div>
+
+  <div id="fb" class="fb hidden"></div>
+  <div id="end-card" class="end-card hidden"></div>
+  <button id="btn-main" class="btn hidden"></button>
+  <button id="btn-sec" class="btn-sec hidden"></button>
+</div>
+
+<script>
+
+const Qs=[
+  {
+    text:"الضمادة التقليدية تحمي الجرح وتُنبّهك إذا بدأت عدوى. — صح أم خطأ؟",
+    stat:"70% من مرضى السكري لا يلاحظون علامات التهاب الجرح في الوقت المناسب.",
+    opts:[
+      {t:"صح",w:true,dt:"الضمادة التقليدية تغطي فقط — لا تحتوي على أي آلية للكشف أو الإنذار.",ds:"الاعتماد عليها وحدها يؤخر اكتشاف العدوى"},
+      {t:"خطأ",w:false}
+    ]
+  },
+  {
+    text:"من بين مرضى السكري الذين تتطور لديهم عدوى في جرح القدم، كم نسبة من ينتهي بهم الأمر بالبتر؟",
+    stat:"عدوى قدم مريض السكري قد تتقدم بصمت دون أعراض خارجية واضحة.",
+    opts:[
+      {t:"أ) 5%",w:true,dt:"النسبة أعلى بكثير مما تتوقع.",ds:"15–20% ينتهون بالبتر — حالات يمكن تفاديها بكشف مبكر"},
+      {t:"ب) 15%",w:false},
+      {t:"ج) 30%",w:true,dt:"قريب، لكن النسبة الدقيقة بين 15–20%.",ds:"المصدر: American Diabetes Association, Diabetes Care Journal, 2023"}
+    ]
+  },
+  {
+    text:"الأعراض الخارجية للعدوى مثل الاحمرار والتورم تظهر فوراً حين تبدأ العدوى. — صح أم خطأ؟",
+    stat:"هناك نافذة زمنية بين بداية العدوى وظهور أعراضها الخارجية.",
+    opts:[
+      {t:"صح",w:true,dt:"التغيرات البيوكيميائية تسبق الأعراض الخارجية بساعات أو أيام — وهذه النافذة هي ما يمكن استغلاله للكشف المبكر.",ds:"الكشف في هذه النافذة يمكن أن ينقذ الطرف"},
+      {t:"خطأ",w:false}
+    ]
+  },
+  {
+    text:"كم نسبة حالات العدوى الجراحية التي تُكتشف فقط بعد خروج المريض من المستشفى؟",
+    stat:"المريض في البيت لا يملك أدوات لمراقبة جرحه بعد الخروج.",
+    opts:[
+      {t:"أ) 20%",w:true,dt:"النسبة أعلى — تقريباً نصف الحالات.",ds:"48% تُكتشف بعد الخروج — والمريض في البيت وحده لا يعرف ما يراقبه"},
+      {t:"ب) 35%",w:true,dt:"قريب، لكن الواقع أكثر إثارة للقلق — 48%.",ds:"المصدر: Journal of the American College of Surgeons"},
+      {t:"ج) 48%",w:false}
+    ]
+  },
+  {
+    text:"لاصق الجروح الذكي من انزورا يحتاج جهازاً إلكترونياً أو اتصالاً بالإنترنت ليعمل. — صح أم خطأ؟",
+    stat:"انزورا صُممت لتكون بسيطة وفعّالة — تماماً كضمادة عادية لكن أذكى.",
+    opts:[
+      {t:"صح",w:true,dt:"التركيبة الكيميائية الحيوية مدمجة داخل اللاصق نفسه — اللون يتغير بالعين المجردة، لا تقنية إضافية مطلوبة.",ds:"الكشف بالعين المجردة — بسيط وفعّال"},
+      {t:"خطأ",w:false}
+    ]
+  }
+];
+
+const COLS=17,ROWS=11;
+let CS=20;
+const G=[
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,0,1,0,1,0,1,1,0,1,1,0,1,1,1,0,1],
+  [1,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
+  [1,0,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1],
+  [1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1],
+  [1,1,1,0,1,1,1,1,1,0,1,0,1,1,1,0,1],
+  [1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+  [1,0,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1],
+  [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+];
+
+const WP=[
+  {c:1,r:9},
+  {c:5,r:9},
+  {c:9,r:7},
+  {c:11,r:5},
+  {c:13,r:7},
+  {c:15,r:5},
+  {c:15,r:1}
+];
+
+let revealed=new Set();
+let playerWP=0;
+let cur=0;
+
+const canvas=document.getElementById('mc');
+const ctx=canvas.getContext('2d');
+
+function resizeCanvas(){
+  const csW=Math.floor((window.innerWidth-24)/COLS);
+  const csH=Math.floor((window.innerHeight-170)/ROWS);
+  CS=Math.max(Math.min(csW,csH),16);
+  canvas.width=CS*COLS;
+  canvas.height=CS*ROWS;
+}
+window.addEventListener('resize',()=>{resizeCanvas();draw();});
+
+function cellToXY(c,r){return{x:c*CS+CS/2,y:r*CS+CS/2};}
+
+function revealPath(from,to){
+  const key=(c,r)=>c+','+r;
+  const visited=new Map();
+  visited.set(key(from.c,from.r),null);
+  const queue=[{c:from.c,r:from.r}];
+  while(queue.length){
+    const cur=queue.shift();
+    if(cur.c===to.c&&cur.r===to.r){
+      let k=key(cur.c,cur.r);
+      while(k){revealed.add(k);k=visited.get(k);}
+      return;
+    }
+    for(const[dc,dr]of[[0,1],[0,-1],[1,0],[-1,0]]){
+      const nc=cur.c+dc,nr=cur.r+dr;
+      if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&G[nr][nc]===0){
+        const nk=key(nc,nr);
+        if(!visited.has(nk)){visited.set(nk,key(cur.c,cur.r));queue.push({c:nc,r:nr});}
+      }
+    }
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const x=c*CS,y=r*CS;
+      ctx.fillStyle=G[r][c]===1?'#4e59b3':(revealed.has(c+','+r)?'#f5f9f8':'#c1cfe8');
+      ctx.fillRect(x,y,CS,CS);
+      ctx.strokeStyle='#9599de';ctx.lineWidth=0.5;
+      ctx.strokeRect(x,y,CS,CS);
+    }
+  }
+  // entrance (below start) and exit (above goal)
+  const en=WP[0],ex=WP[WP.length-1];
+  ctx.fillStyle='#f5f9f8';
+  ctx.fillRect(en.c*CS,(en.r+1)*CS,CS,CS);
+  ctx.fillRect(ex.c*CS,(ex.r-1)*CS,CS,CS);
+
+  for(let i=0;i<=playerWP&&i<WP.length;i++){
+    const wp=WP[i];
+    const{x,y}=cellToXY(wp.c,wp.r);
+    if(i===WP.length-1){
+      ctx.fillStyle='#f59e0b';
+      ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='white';ctx.font='11px serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('★',x,y);
+    } else if(i>0&&i<cur+1&&i<playerWP){
+      ctx.fillStyle='#22c55e';
+      ctx.beginPath();ctx.arc(x,y,8,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='white';ctx.font='bold 9px Tajawal,sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('✓',x,y);
+    } else if(i===playerWP&&i>0){
+      ctx.fillStyle='#7d79cf';
+      ctx.beginPath();ctx.arc(x,y,9,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='white';ctx.font='bold 8px Tajawal,sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('س'+i,x,y+1);
+    }
+  }
+  const pw=WP[playerWP];
+  const{x:px,y:py}=cellToXY(pw.c,pw.r);
+  ctx.fillStyle='#83b6ea';
+  ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#1f2848';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.stroke();
+}
+
+function init(){
+  revealed=new Set();playerWP=0;cur=0;
+  resizeCanvas();
+  revealed.add('1,9');
+  revealPath(WP[0],WP[1]);
+  draw();
+  document.getElementById('step-badge').textContent='البداية';
+  hide('q-card');hide('fb');hide('end-card');
+  const bm=document.getElementById('btn-main');
+  bm.textContent='ابدأ المتاهة';
+  bm.onclick=nextQ;
+  show('btn-main');hide('btn-sec');
+}
+
+function nextQ(){
+  playerWP=cur+1;
+  revealPath(WP[cur],WP[cur+1]);
+  cur++;draw();
+  document.getElementById('step-badge').textContent='محطة '+cur+' من '+Qs.length;
+  hide('btn-main');hide('btn-sec');hide('fb');hide('end-card');
+  const q=Qs[cur-1];
+  document.getElementById('q-text').textContent=q.text;
+  document.getElementById('q-stat').textContent=q.stat;
+  const optsEl=document.getElementById('opts');
+  optsEl.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=o.t;
+    b.onclick=()=>pick(i);
+    optsEl.appendChild(b);
+  });
+  show('q-card');
+}
+
+function pick(i){
+  const q=Qs[cur-1];
+  const o=q.opts[i];
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  const btns=document.querySelectorAll('.opt');
+  if(o.w){
+    btns[i].classList.add('wrong');
+    const fb=document.getElementById('fb');
+    fb.className='fb bad';
+    fb.innerHTML=o.dt+'<div class="fb-stat">'+o.ds+'</div>';
+    hide('q-card');show('fb');
+    const bm=document.getElementById('btn-main');
+    bm.textContent='جرب مرة ثانية';bm.onclick=init;show('btn-main');
+    const bs=document.getElementById('btn-sec');
+    bs.textContent='كيف Enzora بتحل هاد؟';bs.onclick=showEnzora;show('btn-sec');
+  } else {
+    btns[i].classList.add('right');
+    setTimeout(()=>{
+      hide('q-card');hide('fb');
+      if(cur>=Qs.length){
+        playerWP=WP.length-1;
+        revealPath(WP[cur],WP[WP.length-1]);
+        draw();
+        document.getElementById('step-badge').textContent='الحل ⭐';
+        const ec=document.getElementById('end-card');
+        ec.style.borderColor='#22c55e';
+        ec.innerHTML='<div style="font-size:36px;margin-bottom:6px;">🎉</div><h3 style="color:#166534;">وصلت للحل وأنقذت المريض!</h3><div class="pill">Enzora saves ⭐</div><p>زور بوثنا باليوم الهندسي وشوف الضمادة الذكية بعينك!</p>';
+        show('end-card');
+        const bm=document.getElementById('btn-main');
+        bm.textContent='العب مرة ثانية';bm.onclick=init;show('btn-main');
+        hide('btn-sec');hide('q-card');
+      } else {
+        const bm=document.getElementById('btn-main');
+        bm.textContent='كمّل المسار ←';bm.onclick=nextQ;show('btn-main');hide('btn-sec');
+      }
+    },500);
+  }
+}
+
+function showEnzora(){
+  const ec=document.getElementById('end-card');
+  ec.style.borderColor='#7d79cf';
+  ec.innerHTML='<div style="font-size:34px;margin-bottom:6px;">🩹</div><h3 style="color:#4e59b3;">هيك بتشتغل Enzora</h3><div class="pill">Smart Wound Patch</div><p>الضمادة الذكية بتراقب الجرح 24/7 وبتغير لونها فور اكتشاف إشارات العدوى — قبل أي أعراض.</p>';
+  show('end-card');hide('fb');
+  const bm=document.getElementById('btn-main');
+  bm.textContent='جرب توصل للحل 🚀';bm.onclick=init;show('btn-main');hide('btn-sec');
+}
+
+function show(id){document.getElementById(id).classList.remove('hidden');}
+function hide(id){document.getElementById(id).classList.add('hidden');}
+
+init();
+</script>
+</body>
+</html>
